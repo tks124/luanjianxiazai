@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>软件下载</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;background:#f2f3f5;color:#222;min-height:100vh}
+#gate{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;padding:24px;z-index:10}
+#gate h1{font-size:20px;font-weight:600;margin-bottom:22px}
+#code{width:100%;max-width:320px;height:46px;border:1px solid #ddd;border-radius:10px;padding:0 14px;font-size:16px;outline:none;background:#fafafa}
+#code:focus{border-color:#3b82f6;background:#fff}
+#enter{width:100%;max-width:320px;height:46px;margin-top:14px;border:none;border-radius:10px;background:#3b82f6;color:#fff;font-size:16px}
+#enter:active{opacity:.85}
+#tipline{margin-top:12px;font-size:13px;color:#e11d48;min-height:18px}
+#main{display:none;padding-bottom:24px}
+#searchbar{position:sticky;top:0;z-index:5;background:#f2f3f5;padding:10px 12px}
+#search{width:100%;height:42px;border:none;border-radius:21px;padding:0 18px;font-size:15px;outline:none;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+#list{padding:4px 12px}
+.card{display:flex;align-items:center;background:#fff;border-radius:12px;padding:10px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);cursor:pointer;transition:transform .12s}
+.card:active{transform:scale(.985)}
+.card img{width:56px;height:56px;border-radius:10px;object-fit:cover;background:#e9e9e9;flex:0 0 auto}
+.info{flex:1 1 auto;min-width:0;margin-left:12px}
+.name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ver{font-size:12px;color:#888;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl{flex:0 0 auto;margin-left:10px;padding:9px 16px;border-radius:8px;background:#3b82f6;color:#fff;font-size:13px;text-decoration:none}
+.dl:active{opacity:.85}
+.empty{text-align:center;color:#999;font-size:14px;padding:40px 0}
+#detailView{display:none}
+.dtop{position:sticky;top:0;z-index:5;background:#f2f3f5;padding:10px 12px}
+.back{border:none;background:#fff;border-radius:20px;padding:9px 16px;font-size:14px;color:#3b82f6;box-shadow:0 1px 3px rgba(0,0,0,.07);cursor:pointer}
+.back:active{opacity:.7}
+.dcontent{padding:2px 12px 24px}
+.dhead{display:flex;align-items:center;background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:10px}
+.dicon{width:64px;height:64px;border-radius:14px;object-fit:cover;background:#e9e9e9;flex:0 0 auto}
+.dmeta{margin-left:14px;min-width:0;flex:1 1 auto}
+.dname{font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dver{font-size:13px;color:#888;margin-top:6px}
+.section{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.sectionTitle{font-size:14px;font-weight:600;margin-bottom:10px}
+.sectionBody{font-size:14px;line-height:1.75;color:#444;white-space:pre-wrap;word-break:break-word}
+.previewGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.previewImg{width:100%;border-radius:8px;display:block;background:#e9e9e9}
+.previewEmpty{font-size:14px;color:#999}
+.dinfo{background:#fff;border-radius:12px;padding:2px 14px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:10px}
+.row{display:flex;padding:12px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+.row:last-child{border-bottom:none}
+.rowLabel{color:#888;flex:0 0 98px}
+.rowValue{color:#222;flex:1 1 auto;word-break:break-word}
+</style>
+</head>
+<body>
+<div id="gate">
+  <h1>请输入邀请码</h1>
+  <input id="code" type="text" placeholder="邀请码" autocomplete="off">
+  <button id="enter">进入</button>
+  <div id="tipline"></div>
+</div>
+<div id="main">
+  <div id="listView">
+    <div id="searchbar">
+      <input id="search" type="text" placeholder="搜索软件名或版本号" autocomplete="off">
+    </div>
+    <div id="list"></div>
+  </div>
+  <div id="detailView">
+    <div class="dtop">
+      <button class="back" id="backBtn">← 返回</button>
+    </div>
+    <div class="dcontent" id="detailContent"></div>
+  </div>
+</div>
+<script>
+var inviteCodes = [];
+var apps = [];
+var codeReady = false;
+var appsReady = false;
+var mainShown = false;
+var gate = document.getElementById('gate');
+var main = document.getElementById('main');
+var codeInput = document.getElementById('code');
+var tip = document.getElementById('tipline');
+var enterBtn = document.getElementById('enter');
+var searchInput = document.getElementById('search');
+var listEl = document.getElementById('list');
+var listView = document.getElementById('listView');
+var detailView = document.getElementById('detailView');
+var detailContent = document.getElementById('detailContent');
+var backBtn = document.getElementById('backBtn');
+
+function readSaved(){
+  try{ return localStorage.getItem('inviteCode') || '' }catch(e){ return '' }
+}
+function saveCode(v){
+  try{ localStorage.setItem('inviteCode', v) }catch(e){}
+}
+
+function showMain(){
+  if(mainShown) return;
+  mainShown = true;
+  gate.style.display = 'none';
+  main.style.display = 'block';
+  refresh();
+}
+function refresh(){
+  if(mainShown && appsReady) render(apps);
+}
+
+fetch('yaoqinma.json').then(function(r){return r.json()}).then(function(data){
+  inviteCodes = data;
+  codeReady = true;
+  var saved = readSaved();
+  if(saved && inviteCodes.indexOf(saved) !== -1) showMain();
+}).catch(function(){tip.textContent='邀请码文件读取失败'});
+
+fetch('luanjian.json').then(function(r){return r.json()}).then(function(data){
+  apps = data;
+  appsReady = true;
+  refresh();
+}).catch(function(){
+  appsReady = true;
+  listEl.innerHTML = '<div class="empty">软件数据读取失败</div>';
+});
+
+function render(items){
+  listEl.innerHTML='';
+  if(!items.length){listEl.innerHTML='<div class="empty">没有找到相关软件</div>';return}
+  items.forEach(function(a){
+    var card=document.createElement('div');
+    card.className='card';
+    var im=document.createElement('img');
+    im.src=a['图片名称'];
+    im.alt=a['软件名'];
+    im.addEventListener('error',function(){im.style.visibility='hidden'});
+    var info=document.createElement('div');
+    info.className='info';
+    var nm=document.createElement('div');
+    nm.className='name';
+    nm.textContent=a['软件名'];
+    var vr=document.createElement('div');
+    vr.className='ver';
+    vr.textContent=a['版本号'];
+    info.appendChild(nm);
+    info.appendChild(vr);
+    var dl=document.createElement('a');
+    dl.className='dl';
+    dl.textContent='下载';
+    dl.href=a['软件链接'];
+    dl.target='_blank';
+    dl.rel='noopener';
+    card.appendChild(im);
+    card.appendChild(info);
+    card.appendChild(dl);
+    card.addEventListener('click',function(e){
+      if(e.target.closest('a')) return;
+      openDetail(a);
+    });
+    listEl.appendChild(card);
+  });
+}
+
+function pick(o,keys){
+  for(var i=0;i<keys.length;i++){
+    var v=o[keys[i]];
+    if(v===undefined||v===null||v==='') continue;
+    if(Array.isArray(v)&&!v.length) continue;
+    return v;
+  }
+  return '';
+}
+
+function parsePreviews(v){
+  if(!v) return [];
+  if(Array.isArray(v)){
+    return v.map(function(x){return String(x).trim()}).filter(Boolean);
+  }
+  return String(v).split(/[\n,，;；]+/).map(function(x){return x.trim()}).filter(Boolean);
+}
+
+function netText(v){
+  if(v===''||v===undefined||v===null) return '未知';
+  if(typeof v==='boolean') return v?'需要':'不需要';
+  var s=String(v).trim();
+  if(/^(true|1|yes|y|是|需要|需要网络)$/i.test(s)) return '需要';
+  if(/^(false|0|no|n|否|不需要|无需|不需要网络)$/i.test(s)) return '不需要';
+  return s;
+}
+
+function section(title,body){
+  var sec=document.createElement('div');
+  sec.className='section';
+  var t=document.createElement('div');
+  t.className='sectionTitle';
+  t.textContent=title;
+  sec.appendChild(t);
+  var b=document.createElement('div');
+  b.className='sectionBody';
+  b.textContent=body;
+  sec.appendChild(b);
+  return sec;
+}
+
+function makeRow(label,value){
+  var row=document.createElement('div');
+  row.className='row';
+  var l=document.createElement('div');
+  l.className='rowLabel';
+  l.textContent=label;
+  var v=document.createElement('div');
+  v.className='rowValue';
+  v.textContent=value;
+  row.appendChild(l);
+  row.appendChild(v);
+  return row;
+}
+
+function previewSection(app){
+  var sec=document.createElement('div');
+  sec.className='section';
+  var t=document.createElement('div');
+  t.className='sectionTitle';
+  t.textContent='预览图';
+  sec.appendChild(t);
+
+  var list=parsePreviews(pick(app,['预览图','预览图片','预览','截图']));
+  if(!list.length){
+    var e=document.createElement('div');
+    e.className='previewEmpty';
+    e.textContent='暂无预览图';
+    sec.appendChild(e);
+    return sec;
+  }
+
+  var grid=document.createElement('div');
+  grid.className='previewGrid';
+  var failed=0;
+  list.forEach(function(src){
+    var im=document.createElement('img');
+    im.className='previewImg';
+    im.src=src;
+    im.alt='预览图';
+    im.loading='lazy';
+    im.addEventListener('error',function(){
+      im.remove();
+      failed++;
+      if(failed>=list.length){
+        grid.remove();
+        var e=document.createElement('div');
+        e.className='previewEmpty';
+        e.textContent='暂无预览图';
+        sec.appendChild(e);
+      }
+    });
+    grid.appendChild(im);
+  });
+  sec.appendChild(grid);
+  return sec;
+}
+
+function renderDetail(app){
+  detailContent.innerHTML='';
+
+  var head=document.createElement('div');
+  head.className='dhead';
+  var im=document.createElement('img');
+  im.className='dicon';
+  im.src=app['图片名称']||'';
+  im.alt=app['软件名']||'';
+  im.addEventListener('error',function(){im.style.visibility='hidden'});
+  var meta=document.createElement('div');
+  meta.className='dmeta';
+  var nm=document.createElement('div');
+  nm.className='dname';
+  nm.textContent=app['软件名']||'未知软件';
+  var vr=document.createElement('div');
+  vr.className='dver';
+  vr.textContent=app['版本号']||'未知版本';
+  meta.appendChild(nm);
+  meta.appendChild(vr);
+  head.appendChild(im);
+  head.appendChild(meta);
+  detailContent.appendChild(head);
+
+  detailContent.appendChild(section('详细介绍',pick(app,['详细介绍','软件介绍','介绍','描述'])||'暂无介绍'));
+  detailContent.appendChild(previewSection(app));
+  detailContent.appendChild(section('更新日志',pick(app,['更新日志','更新内容','日志'])||'暂无更新日志'));
+
+  var info=document.createElement('div');
+  info.className='dinfo';
+  info.appendChild(makeRow('软件厂商',pick(app,['软件厂商','厂商','开发者','开发商'])||'未知'));
+  info.appendChild(makeRow('是否需要网络',netText(pick(app,['是否需要网络','是否联网','需要网络']))));
+  info.appendChild(makeRow('大小',String(pick(app,['大小','软件大小','文件大小'])||'未知')));
+  info.appendChild(makeRow('包名',pick(app,['包名','软件包名','应用包名'])||'未知'));
+  detailContent.appendChild(info);
+}
+
+function openDetail(app){
+  renderDetail(app);
+  listView.style.display='none';
+  detailView.style.display='block';
+  window.scrollTo(0,0);
+}
+function closeDetail(){
+  detailView.style.display='none';
+  listView.style.display='block';
+  window.scrollTo(0,0);
+}
+backBtn.addEventListener('click',closeDetail);
+
+function subseq(text,q){
+  var i=0;
+  for(var j=0;j<text.length&&i<q.length;j++){if(text[j]===q[i])i++}
+  return i===q.length;
+}
+function score(a,q){
+  var n=a['软件名'].toLowerCase();
+  var v=a['版本号'].toLowerCase();
+  if(n===q||v===q)return 4;
+  if(n.indexOf(q)===0||v.indexOf(q)===0)return 3;
+  if(n.indexOf(q)>-1||v.indexOf(q)>-1)return 2;
+  if(subseq(n,q)||subseq(v,q))return 1;
+  return 0;
+}
+function doSearch(){
+  var q=searchInput.value.trim();
+  if(!q){render(apps);return}
+  var ql=q.toLowerCase();
+  var result=[];
+  apps.forEach(function(a){
+    var s=score(a,ql);
+    if(s>0)result.push({a:a,s:s});
+  });
+  result.sort(function(x,y){return y.s-x.s});
+  render(result.map(function(x){return x.a}));
+}
+
+function verify(){
+  var v=codeInput.value.trim();
+  if(!v){tip.textContent='请输入邀请码';return}
+  if(!codeReady){tip.textContent='数据加载中，请稍候';return}
+  if(inviteCodes.indexOf(v)===-1){tip.textContent='邀请码错误';return}
+  saveCode(v);
+  tip.textContent='';
+  showMain();
+}
+
+enterBtn.addEventListener('click',verify);
+codeInput.addEventListener('keydown',function(e){if(e.key==='Enter')verify()});
+searchInput.addEventListener('input',doSearch);
+</script>
+</body>
+</html>
