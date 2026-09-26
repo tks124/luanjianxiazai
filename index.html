@@ -208,6 +208,13 @@ var r=atob(String(e)),o='',i,k,b;
 for(i=0;i<r.length;i++){b=r.charCodeAt(i)&255;k=K.charCodeAt(i%K.length);
 o+=String.fromCharCode((b^k^(i%251))&255)}
 return C(o)}catch(x){return ''}}
+function dec(v){
+var s=String(v==null?'':v);
+if(!s)return '';
+var d=DE(s);
+if(!d)return s;
+if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(d))return s;
+return d}
 
 function rI(v){
 if(v==null)return null;
@@ -243,9 +250,24 @@ E:'普通用户',F:'官方认证：知名软件上传者',
 G:'官方认证：特殊软件上传者',H:'官方认证：高级软件上传者',
 J:'官方认证：普通软件上传者'};
 var AH={A:'#065f46',B:'#16a34a',C:'#22c55e',D:'#65a30d',E:'#6b7280',
-F:'#0891b2',G:'#0ea5e9',H:'#3b82f6',J:'#8b5cf6'};
-
-function aT(c){var x=String(c||'').trim().toUpperCase();return AM[x]||(x?'未认证':'普通用户')}
+F:'#0891b2',G:'#0ea5e9',H:'#3b82f6',J:'#8b5cf6',V:'#7c3aed'};
+function aCode(u){
+if(!u)return 'E';
+var ra=String(u['用户认证']||'').trim();
+if(!ra)return 'E';
+var c=dec(ra).trim().toUpperCase();
+return c||'E'}
+function aText(u){
+var c=aCode(u);
+if(c==='V'){
+var rc=String((u&&u['认证内容'])||'');
+var t=dec(rc).trim();
+return t||'已认证'}
+return AM[c]||(c?'未认证':'普通用户')}
+function aT(c){
+var x=String(c||'').trim().toUpperCase();
+if(x==='V')return '已认证';
+return AM[x]||(x?'未认证':'普通用户')}
 function aC(c){var x=String(c||'').trim().toUpperCase();return AH[x]||'#6b7280'}
 
 var MH=null;
@@ -289,9 +311,12 @@ if(s&&IC.indexOf(s)!==-1)sMn()
 fetch('luanjian.json').then(function(r){return r.json()}).then(function(d){
 AP=d||[];aR=1;rf()
 }).catch(function(){aR=1;le.innerHTML='<div class="empty">软件数据读取失败</div>'});
-
 fetch('yohu.json').then(function(r){return r.json()}).then(function(d){
-US=Array.isArray(d)?d:[]
+if(Array.isArray(d))US=d;
+else if(d&&Array.isArray(d['用户']))US=d['用户'];
+else if(d&&Array.isArray(d['users']))US=d['users'];
+else if(d&&Array.isArray(d['data']))US=d['data'];
+else US=[]
 }).catch(function(){US=[]});
 
 fetch('right.json').then(function(r){return r.json()}).then(function(d){
@@ -378,27 +403,29 @@ var a=document.createElement('div');a.className='rowLabel';a.textContent=l;
 var b=document.createElement('div');b.className='rowValue';b.textContent=v;
 r.appendChild(a);r.appendChild(b);
 return r}
-
 function fU(v){
-if(!v||!RT)return null;
-var k=RT[v];
-if(k==null||k==='')return null;
-var t=String(k).trim();
+if(!v)return null;
+var t=String(v).trim();
+if(!t)return null;
+var cands=[t];
+if(RT){
+var k=RT[t];
+if(k!=null&&k!=='')cands.push(String(k).trim())}
 for(var i=0;i<US.length;i++){
 var u=US[i];
+if(!u||typeof u!=='object')continue;
 var ri=String(u['用户ID']||''),rn=String(u['用户名称']||'');
-var di=DE(ri)||ri,dn=DE(rn)||rn;
-if(ri===t||rn===t||di===t||dn===t)return u}
+for(var j=0;j<cands.length;j++){
+var c=cands[j];
+if(ri===c||rn===c||dec(ri)===c||dec(rn)===c)return u}}
 return null}
-
 function vD(v){
 if(!v)return '未知';
 var u=fU(v);
 if(!u)return v;
-var ra=String(u['用户认证']||'');
-var c=(DE(ra)||ra).trim().toUpperCase();
-if(!c)return v;
-return v+'（'+aT(c)+'）'}
+var ra=String(u['用户认证']||'').trim();
+if(!ra)return v;
+return v+'（'+aText(u)+'）'}
 
 function pS(a){
 var s=document.createElement('div');s.className='section';
@@ -568,29 +595,26 @@ function sL(u){
 try{
 if(u)localStorage.setItem('loginUser',JSON.stringify(u));
 else localStorage.removeItem('loginUser')}catch(e){}}
-
 function dL(){
-var n=((G('loginName')||{}).value||'');
-var i=((G('loginId')||{}).value||'');
-var p=((G('loginPass')||{}).value||'');
-var t=G('loginTip');
-n=n.trim();i=i.trim();p=p.trim();
-if(!n||!i||!p){t.textContent='请填写完整信息';return}
+var ni=G('loginName'),ii=G('loginId'),pi=G('loginPass'),t=G('loginTip');
+if(!ni||!ii||!pi||!t)return;
+var n=ni.value.trim(),id=ii.value.trim(),p=pi.value.trim();
+if(!n||!id||!p){t.textContent='请填写完整信息';return}
 if(!US.length){t.textContent='用户数据读取失败';return}
 var f=null;
 for(var k=0;k<US.length;k++){
 var u=US[k];
+if(!u||typeof u!=='object')continue;
 var un=String(u['用户名称']||''),ui=String(u['用户ID']||'');
 var up=String(u['密码']||u['用户密码']||'');
-var dn=DE(un)||un,di=DE(ui)||ui,dp=DE(up)||up;
-if(dn===n&&di===i&&dp===p){f=u;break}
-if(un===n&&ui===i&&up===p){f=u;break}}
+if(!un&&!ui)continue;
+var vn=[un,dec(un)],vi=[ui,dec(ui)],vp=[up,dec(up)];
+if(vn.indexOf(n)>-1&&vi.indexOf(id)>-1&&vp.indexOf(p)>-1){f=u;break}}
 if(!f){t.textContent='用户名称、ID 或密码错误';return}
-var rn=String(f['用户名称']||'');
-var real=DE(rn)||rn;
-var ra=String(f['用户认证']||'E');
-var ac=(DE(ra)||ra).trim().toUpperCase();
-sL({name:real,id:i,auth:ac||'E'});
+var realName=dec(String(f['用户名称']||''))||n;
+var realId=dec(String(f['用户ID']||''))||id;
+var ac=aCode(f);
+sL({name:realName,id:realId,auth:ac,authText:aText(f)});
 rP()}
 
 function rP(){
@@ -607,11 +631,19 @@ el.innerHTML=
 '<button class="bigBtn" id="loginBtn">登录</button>'+
 '</div>';
 G('loginBtn').addEventListener('click',dL);
-G('loginPass').addEventListener('keydown',function(e){if(e.key==='Enter')dL()});
+var lp=G('loginPass');
+if(lp)lp.addEventListener('keydown',function(e){if(e.key==='Enter')dL()});
 return}
+var uu=fU(lg.id)||fU(lg.name);
+if(uu){
+lg.auth=aCode(uu);
+lg.authText=aText(uu);
+sL(lg)}
+
+var ac=aC(lg.auth);
+var at=lg.authText||aT(lg.auth);
 var av='';
 try{av=localStorage.getItem('userAvatar')||''}catch(e){}
-var at=aT(lg.auth),ac=aC(lg.auth);
 el.innerHTML=
 '<div class="pcard">'+
 '<div class="avatarBox"><img class="avatarImg" id="avatarImg" src="'+E(av)+'" alt="头像"></div>'+
