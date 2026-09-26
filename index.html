@@ -183,7 +183,7 @@ body{font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",
 <script>
 (function(){
 var K='SPACEKILL124CN',ML='tks124jpr@spacekill124.cn',
-IC=[],AP=[],US=[],RT={},cR=0,aR=0,mS=0;
+IC=[],AP=[],US=[],RT={},SH=[],cR=0,aR=0,mS=0,sR=0;
 
 function G(i){return document.getElementById(i)}
 function Q(s){return document.querySelectorAll(s)}
@@ -309,7 +309,7 @@ if(s&&IC.indexOf(s)!==-1)sMn()
 }).catch(function(){tp.textContent='邀请码文件读取失败'});
 
 fetch('luanjian.json').then(function(r){return r.json()}).then(function(d){
-AP=d||[];aR=1;rf()
+AP=d||[];aR=1;rf();if(mS)rU()
 }).catch(function(){aR=1;le.innerHTML='<div class="empty">软件数据读取失败</div>'});
 fetch('yohu.json').then(function(r){return r.json()}).then(function(d){
 if(Array.isArray(d))US=d;
@@ -323,6 +323,12 @@ fetch('right.json').then(function(r){return r.json()}).then(function(d){
 var o=Array.isArray(d)?(d[0]||{}):d;
 RT=(o&&typeof o==='object')?o:{}
 }).catch(function(){RT={}});
+
+fetch('shenhe.json').then(function(r){return r.json()}).then(function(d){
+SH=Array.isArray(d)?d:[];sR=1;
+if(mS)rU()
+}).catch(function(){SH=[];sR=1;
+if(mS)rU()});
 
 function rd(it){
 le.innerHTML='';
@@ -426,6 +432,16 @@ if(!u)return v;
 var ra=String(u['用户认证']||'').trim();
 if(!ra)return v;
 return v+'（'+aText(u)+'）'}
+
+function fA(name){
+if(!name)return null;
+var n=String(name).trim().toLowerCase();
+for(var i=0;i<AP.length;i++){
+var a=AP[i];
+if(!a||typeof a!=='object')continue;
+var an=String(a['软件名']||'').trim().toLowerCase();
+if(an===n)return a}
+return null}
 
 function pS(a){
 var s=document.createElement('div');s.className='section';
@@ -544,15 +560,54 @@ b.classList.add('active');
 rU()});
 function gU(){try{return JSON.parse(localStorage.getItem('myUploads')||'[]')}catch(e){return []}}
 function sU(a){try{localStorage.setItem('myUploads',JSON.stringify(a))}catch(e){}}
+
+function sL2(v){
+if(v==null)return [];
+if(Array.isArray(v))return v;
+if(typeof v==='object')return [];
+return String(v).split(/[\n\r]+/).map(function(x){return x.trim()}).filter(Boolean)}
+
+function sP(x){
+if(x&&typeof x==='object'){
+return{
+n:String(x['软件名']||x['名称']||x['name']||''),
+v:String(x['版本号']||x['版本']||x['version']||''),
+s:String(x['大小']||x['软件大小']||x['size']||'')}}
+var t=String(x==null?'':x).trim();
+var p=t.split('|').map(function(y){return y.trim()});
+return{n:p[0]||t,v:p[1]||'',s:p[2]||''}}
+
 function rU(){
-var recs=gU().filter(function(r){return r.status===cT});
 ul.innerHTML='';
-if(!recs.length){ul.innerHTML='<div class="empty">暂无内容</div>';return}
-recs.forEach(function(r){
+var lg=gL();
+if(!lg){ul.innerHTML='<div class="empty">请登录</div>';return}
+if(!sR){ul.innerHTML='<div class="empty">加载中...</div>';return}
+var uid=String(lg.id||''),un=String(lg.name||'');
+var items=[];
+SH.forEach(function(r){
+if(!r||typeof r!=='object')return;
+var rid=String(r['用户ID']||'');
+if(!rid)return;
+if(rid!==uid&&rid!==un&&dec(rid)!==uid&&dec(rid)!==un)return;
+var list=sL2(r[cT]);
+var rs=cT==='暂未通过'?sL2(r['暂未通过原因']):(cT==='已下架'?sL2(r['已下架原因']):[]);
+list.forEach(function(x,i){
+var o=sP(x);
+if(!o.n)return;
+var hit=fA(o.n);
+if(hit){
+if(!o.v)o.v=String(pk(hit,['版本号','版本','version'])||'');
+if(!o.s)o.s=String(pk(hit,['大小','软件大小','文件大小','size'])||'')}
+var rsn=rs[i]||(rs.length===1&&list.length>1?rs[0]:'');
+items.push({n:o.n,v:o.v,s:o.s,r:rsn})})});
+if(!items.length){ul.innerHTML='<div class="empty">暂无内容</div>';return}
+items.forEach(function(it){
 var c=document.createElement('div');c.className='miniCard';
-c.innerHTML='<div class="miniName">'+E(r.name)+'<span class="statusTag">'+E(r.status)+'</span></div>'+
-'<div class="miniSub">版本 '+E(r.ver||'未知')+' · '+E(r.size||'未知大小')+'</div>';
+c.innerHTML='<div class="miniName">'+E(it.n)+'<span class="statusTag">'+E(cT)+'</span></div>'+
+'<div class="miniSub">版本 '+E(it.v||'未知')+' · '+E(it.s||'未知大小')+'</div>'+
+(it.r?'<div class="miniSub">'+E(it.r)+'</div>':'');
 ul.appendChild(c)})}
+
 G('openFormBtn').addEventListener('click',function(){
 uf.classList.add('show');window.scrollTo(0,0)});
 G('formBack').addEventListener('click',function(){uf.classList.remove('show')});
@@ -670,4 +725,4 @@ rP()})}
 })();
 </script>
 </body>
-  </html>
+                                         </html>
