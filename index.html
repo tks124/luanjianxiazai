@@ -15,11 +15,10 @@
 body{font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
 #gate{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--w);padding:24px;z-index:10}
 #gate h1{font-size:20px;font-weight:600;margin-bottom:22px}
-#code{width:100%;max-width:320px;height:46px;border:1px solid var(--bd);border-radius:10px;padding:0 14px;font-size:16px;outline:none;background:var(--inbg)}
-#code:focus{border-color:var(--pri);background:var(--w)}
-#enter{width:100%;max-width:320px;height:46px;margin-top:14px;border:none;border-radius:10px;background:var(--pri);color:var(--w);font-size:16px}
+#enter{width:100%;max-width:320px;height:46px;border:none;border-radius:10px;background:var(--pri);color:var(--w);font-size:16px;cursor:pointer;transition:background .2s}
 #enter:active{opacity:.85}
-#tipline{margin-top:12px;font-size:13px;color:var(--err);min-height:18px}
+#enter:disabled{background:#94a3b8;cursor:default}
+#tipline{margin-top:12px;font-size:13px;color:var(--err);min-height:18px;text-align:center}
 #main{display:none;padding-bottom:74px}
 #searchbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 12px}
 #search{width:100%;height:42px;border:none;border-radius:21px;padding:0 18px;font-size:15px;outline:none;background:var(--w);box-shadow:var(--sh)}
@@ -108,9 +107,8 @@ body{font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",
 </head>
 <body>
 <div id="gate">
-  <h1>请输入邀请码</h1>
-  <input id="code" type="text" placeholder="邀请码" autocomplete="off">
-  <button id="enter">进入</button>
+  <h1>人机验证</h1>
+  <button id="enter">点击开始验证</button>
   <div id="tipline"></div>
 </div>
 
@@ -183,12 +181,12 @@ body{font-family:-apple-system,"Helvetica Neue","PingFang SC","Microsoft YaHei",
 <script>
 (function(){
 var K='SPACEKILL124CN',ML='tks124jpr@spacekill124.cn',
-IC=[],AP=[],US=[],RT={},SH=[],cR=0,aR=0,mS=0,sR=0;
+AP=[],US=[],RT={},SH=[],aR=0,sR=0;
 
 function G(i){return document.getElementById(i)}
 function Q(s){return document.querySelectorAll(s)}
 
-var gt=G('gate'),mn=G('main'),ci=G('code'),tp=G('tipline'),eb=G('enter'),
+var gt=G('gate'),mn=G('main'),tp=G('tipline'),eb=G('enter'),
 si=G('search'),le=G('list'),lv=G('listView'),dv=G('detailView'),
 uv=G('uploadView'),pv=G('profileView'),dc=G('detailContent'),
 bb=G('backBtn'),nv=G('nav'),nb=Q('.navBtn');
@@ -215,6 +213,50 @@ var d=DE(s);
 if(!d)return s;
 if(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(d))return s;
 return d}
+
+var _q=0,_h=0;
+function _z0(){
+var f=0;
+try{
+if(typeof navigator==='undefined'||typeof window==='undefined')return 1;
+if(navigator.webdriver===true)f=1;
+var u=String(navigator.userAgent||'');
+if(!u)f=1;
+if(/headless|phantomjs|puppet|playwright|selenium|webdriver|electron|jsdom|zombie|nightmare/i.test(u))f=1;
+if(typeof screen!=='undefined'&&(!screen.width||!screen.height))f=1;
+}catch(e){}
+return f}
+function _z1(){
+var f=0;
+try{
+if(navigator.onLine===false)f=1;
+}catch(e){}
+return f}
+function _z2(){
+gt.style.display='none';
+mn.style.display='block';
+nv.style.display='flex';
+rf()}
+eb.addEventListener('click',function(){
+if(_q)return;
+tp.textContent='';
+if(_z0()||_z1()){
+eb.disabled=true;
+eb.textContent='验证失败';
+tp.textContent='环境异常，请更换浏览器或网络后重试';
+setTimeout(function(){eb.disabled=false;eb.textContent='重新验证'},1600);
+return}
+_q=1;_h=3;
+eb.disabled=true;
+eb.textContent='验证中 '+_h+'s';
+var _t=setInterval(function(){
+_h--;
+if(_h>0){eb.textContent='验证中 '+_h+'s';return}
+clearInterval(_t);
+eb.textContent='验证通过';
+setTimeout(function(){
+_q=0;eb.disabled=false;eb.textContent='点击开始验证';
+_z2()},400)},1000)});
 
 function rI(v){
 if(v==null)return null;
@@ -283,33 +325,10 @@ if(MH){var f=MH;MH=null;f()}});
 G('modal').addEventListener('click',function(e){
 if(e.target===this){this.classList.remove('show');MH=null}});
 
-function rS(){try{return localStorage.getItem('inviteCode')||''}catch(e){return ''}}
-function sC(v){try{localStorage.setItem('inviteCode',v)}catch(e){}}
-function sMn(){
-if(mS)return;
-mS=1;
-gt.style.display='none';
-mn.style.display='block';
-nv.style.display='flex';
-rf()}
-function rf(){if(mS&&aR)rd(AP)}
-function vf(){
-var v=ci.value.trim();
-if(!v){tp.textContent='请输入邀请码';return}
-if(!cR){tp.textContent='数据加载中，请稍候';return}
-if(IC.indexOf(v)===-1){tp.textContent='邀请码错误';return}
-sC(v);tp.textContent='';sMn()}
-eb.addEventListener('click',vf);
-ci.addEventListener('keydown',function(e){if(e.key==='Enter')vf()});
-
-fetch('yaoqinma.json').then(function(r){return r.json()}).then(function(d){
-IC=d||[];cR=1;
-var s=rS();
-if(s&&IC.indexOf(s)!==-1)sMn()
-}).catch(function(){tp.textContent='邀请码文件读取失败'});
+function rf(){if(aR)rd(AP)}
 
 fetch('luanjian.json').then(function(r){return r.json()}).then(function(d){
-AP=d||[];aR=1;rf();if(mS)rU()
+AP=d||[];aR=1;rf()
 }).catch(function(){aR=1;le.innerHTML='<div class="empty">软件数据读取失败</div>'});
 fetch('yohu.json').then(function(r){return r.json()}).then(function(d){
 if(Array.isArray(d))US=d;
@@ -325,10 +344,8 @@ RT=(o&&typeof o==='object')?o:{}
 }).catch(function(){RT={}});
 
 fetch('shenhe.json').then(function(r){return r.json()}).then(function(d){
-SH=Array.isArray(d)?d:[];sR=1;
-if(mS)rU()
-}).catch(function(){SH=[];sR=1;
-if(mS)rU()});
+SH=Array.isArray(d)?d:[];sR=1
+}).catch(function(){SH=[];sR=1});
 
 function rd(it){
 le.innerHTML='';
@@ -725,4 +742,4 @@ rP()})}
 })();
 </script>
 </body>
-                                         </html>
+          </html>
